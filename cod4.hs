@@ -25,8 +25,10 @@ queryServer (ip,port) = do sock <- socket AF_INET Datagram defaultProtocol
                            sendTo sock query2 (SockAddrInet port addr)
                            recv sock 10000
 
+ordB = fromIntegral . ord
+
 splitC :: Char -> ByteString -> [ByteString]
-splitC = B.split . fromIntegral . ord
+splitC = B.split . ordB
 
 pp :: ByteString -> [Char]
 pp rawData = let parts = splitC '\n' rawData
@@ -34,8 +36,7 @@ pp rawData = let parts = splitC '\n' rawData
                  getValue key = key ++ ": " ++ value
                           where value = info !! ((fromJust $ findIndex (==key) info)+1)
 
-                 getPlayer x | B.length x > 0 = toString $ last $ splitC ' ' x
-                             | otherwise = ""
+                 getPlayer = toString . B.dropWhile (\c->c /= ordB '"')
                  players = map getPlayer (drop 2 parts)
 
              in  getValue "sv_hostname" ++ "\n" ++
