@@ -3,17 +3,19 @@ import qualified Data.ByteString as B
 import Data.ByteString.UTF8 (ByteString,toString)
 import Network.Socket.ByteString
 import Network.Socket hiding (sendTo,recv)
-import Char
+import Data.Char
 import Numeric
-import Maybe
-import List
-import Monad
+import Data.Maybe
+import Data.List
+import Control.Monad
 
 sala1 = ("190.211.243.238",28958)
 sala2 = ("190.211.243.238",28959)
 sala4 = ("190.211.243.238",28961)
+pygamers = ("201.217.39.74",28965)
 
-servers = [sala1,sala2,sala4]
+
+servers = [sala1,sala2,sala4,pygamers]
 
 -- from http://www.brainless.us/forum/viewtopic.php?f=7&t=57
 query1 = B.pack [0xFF, 0xFF, 0xFF, 0XFF, 0x67, 0x65, 0x74, 0x69, 0x6E, 0x66, 0x6F, 0x20, 0x78,0x78,0x78]
@@ -38,9 +40,9 @@ pp rawData = let parts = splitC '\n' rawData
 
                  getPlayer = toString . B.dropWhile (\c->c /= ordB '"')
                  players = map getPlayer (drop 2 parts)
-
+                 numPlayers = length players - 1
              in  getValue "sv_hostname" ++ "\n" ++
                  getValue "mapname" ++ "\n" ++
-                 "players: " ++ (concat $ intersperse ", " players) ++ "\n"
+                 "players(" ++ (show numPlayers) ++ "): " ++ (concat $ intersperse ", " players) ++ "\n"
 
 main = mapM_ (\x->(liftM pp) (queryServer x) >>= putStrLn) servers
