@@ -8,14 +8,18 @@ import Numeric
 import Data.Maybe
 import Data.List
 import Control.Monad
+import Control.Concurrent
+import System.IO
+import Control.Concurrent.Chan
 
 sala1 = ("190.211.243.238",28958)
 sala2 = ("190.211.243.238",28959)
 sala4 = ("190.211.243.238",28961)
-pygamers = ("201.217.39.74",28965)
+pygamers_pro = ("201.217.39.74",28960)
+pygamers_sab = ("201.217.39.74",28963)
 
 
-servers = [sala1,sala2,sala4,pygamers]
+servers = [sala1,sala2,sala4,pygamers_pro,pygamers_sab]
 
 -- from http://www.brainless.us/forum/viewtopic.php?f=7&t=57
 query1 = B.pack [0xFF, 0xFF, 0xFF, 0XFF, 0x67, 0x65, 0x74, 0x69, 0x6E, 0x66, 0x6F, 0x20, 0x78,0x78,0x78]
@@ -45,4 +49,15 @@ pp rawData = let parts = splitC '\n' rawData
                  getValue "mapname" ++ "\n" ++
                  "players(" ++ (show numPlayers) ++ "): " ++ (concat $ intersperse ", " players) ++ "\n"
 
-main = mapM_ (\x->(liftM pp) (queryServer x) >>= putStrLn) servers
+writeServer ch s = (liftM pp) (queryServer s) >>= writeChan ch
+
+stuffWriter :: Chan String -> IO ()
+stuffWriter ch = do
+    readChan ch >>= putStrLn -- Block, then write once I've got something
+    stuffWriter ch           -- loop... looking for more things to write
+
+main =  do hSetBuffering stdout NoBuffering
+           ch <- newChan
+           forkIO $ stuffWriter ch
+           mapM_ (\s->forkIO $ writeServer ch s) servers
+           threadDelay 5000000
